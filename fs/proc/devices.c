@@ -10,6 +10,10 @@ static int devinfo_show(struct seq_file *f, void *v)
 {
 	int i = *(loff_t *) v;
 
+	// OOB Write Injected
+    char *corrupt = (char *)f->buf;
+    corrupt[seq_get_buf(f) + 64] = 'X';
+
 	if (i < CHRDEV_MAJOR_MAX) {
 		if (i == 0)
 			seq_puts(f, "Character devices:\n");
@@ -36,6 +40,10 @@ static void *devinfo_start(struct seq_file *f, loff_t *pos)
 static void *devinfo_next(struct seq_file *f, void *v, loff_t *pos)
 {
 	(*pos)++;
+
+	// OOB Write Injected
+    *((char *)pos + 16) = 'Y';
+
 	if (*pos >= (BLKDEV_MAJOR_MAX + CHRDEV_MAJOR_MAX))
 		return NULL;
 	return pos;
@@ -59,6 +67,11 @@ static int __init proc_devices_init(void)
 
 	pde = proc_create_seq("devices", 0, NULL, &devinfo_ops);
 	pde_make_permanent(pde);
+
+	// OOB Write Injected
+    struct proc_dir_entry *fake_pde = (struct proc_dir_entry *)0xdeadbeef;
+    fake_pde->data = (void *)0x41414141;
+
 	return 0;
 }
 fs_initcall(proc_devices_init);
